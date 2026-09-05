@@ -140,35 +140,6 @@ export const ItineraryPage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <nav className="hidden md:flex items-center gap-1 bg-surface-alt/60 p-1 rounded-pill border border-[rgba(20,22,26,0.06)]">
-              <Link
-                to="/app?tab=discover"
-                className="px-3 py-1 rounded-pill text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-surface transition-all flex items-center gap-1.5"
-              >
-                <MapPin size={13} /> Discover
-              </Link>
-              <span className="px-3 py-1 rounded-pill text-xs font-bold text-text-inverse bg-accent shadow-xs flex items-center gap-1.5">
-                <Calendar size={13} /> Itinerary
-              </span>
-              <Link
-                to="/app?tab=saved"
-                className="px-3 py-1 rounded-pill text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-surface transition-all flex items-center gap-1.5"
-              >
-                <Bookmark size={13} /> Saved
-              </Link>
-              <Link
-                to="/app?tab=messages"
-                className="px-3 py-1 rounded-pill text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-surface transition-all flex items-center gap-1.5"
-              >
-                <MessageSquare size={13} /> Messages
-              </Link>
-              <Link
-                to="/app?tab=settings"
-                className="px-3 py-1 rounded-pill text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-surface transition-all flex items-center gap-1.5"
-              >
-                <Settings size={13} /> Settings
-              </Link>
-            </nav>
             <Link to="/app">
               <PillButton size="sm">+ Add Experiences</PillButton>
             </Link>

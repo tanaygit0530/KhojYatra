@@ -503,89 +503,6 @@ export const TravelerApp: React.FC<TravelerAppProps> = ({ defaultTab }) => {
             </Badge>
           </div>
 
-          {/* Desktop Tab Switcher */}
-          <nav className="hidden md:flex items-center gap-1 bg-surface-alt/70 p-1 rounded-pill border border-[rgba(20,22,26,0.06)]">
-            <button
-              type="button"
-              onClick={() => {
-                setActiveNav('discover');
-                setSearchParams({ tab: 'discover' });
-              }}
-              className={`px-3 py-1 rounded-pill text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                activeNav === 'discover' || activeNav === 'home'
-                  ? 'bg-accent text-text-inverse font-bold shadow-xs'
-                  : 'text-text-secondary hover:text-text-primary hover:bg-surface'
-              }`}
-            >
-              <MapPin size={13} /> Discover
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/itinerary')}
-              className="px-3 py-1 rounded-pill text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-surface transition-all flex items-center gap-1.5"
-            >
-              <Calendar size={13} /> Itinerary
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveNav('saved');
-                setSearchParams({ tab: 'saved' });
-              }}
-              className={`px-3 py-1 rounded-pill text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                activeNav === 'saved'
-                  ? 'bg-accent text-text-inverse font-bold shadow-xs'
-                  : 'text-text-secondary hover:text-text-primary hover:bg-surface'
-              }`}
-            >
-              <Bookmark size={13} /> Saved
-              {savedCount > 0 && (
-                <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                    activeNav === 'saved' ? 'bg-white/30 text-white' : 'bg-accent-soft text-accent'
-                  }`}
-                >
-                  {savedCount}
-                </span>
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveNav('messages');
-                setSearchParams({ tab: 'messages' });
-              }}
-              className={`px-3 py-1 rounded-pill text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                activeNav === 'messages'
-                  ? 'bg-accent text-text-inverse font-bold shadow-xs'
-                  : 'text-text-secondary hover:text-text-primary hover:bg-surface'
-              }`}
-            >
-              <MessageSquare size={13} /> Messages
-              <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  activeNav === 'messages' ? 'bg-white/30 text-white' : 'bg-accent-soft text-accent'
-                }`}
-              >
-                1
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveNav('settings');
-                setSearchParams({ tab: 'settings' });
-              }}
-              className={`px-3 py-1 rounded-pill text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                activeNav === 'settings'
-                  ? 'bg-accent text-text-inverse font-bold shadow-xs'
-                  : 'text-text-secondary hover:text-text-primary hover:bg-surface'
-              }`}
-            >
-              <Settings size={13} /> Settings
-            </button>
-          </nav>
-
           <div className="flex items-center gap-3">
             {activeNav !== 'discover' && activeNav !== 'home' ? (
               <PillButton size="sm" icon={<MapPin size={13} />} onClick={() => { setActiveNav('discover'); setSearchParams({ tab: 'discover' }); }}>
@@ -618,7 +535,12 @@ export const TravelerApp: React.FC<TravelerAppProps> = ({ defaultTab }) => {
                   size="sm"
                   icon={<RotateCcw size={13} />}
                   onClick={() => {
+                    setLocationMode('current');
+                    setLat(28.6506);
+                    setLng(77.2303);
+                    setPlannedLocationName('Central Delhi');
                     setDurationMinutes(120);
+                    setBudgetMin(300);
                     setBudgetMax(1500);
                     setSelectedInterests(['food_culinary', 'cultural_heritage']);
                     setIsSurpriseMode(false);
@@ -630,67 +552,6 @@ export const TravelerApp: React.FC<TravelerAppProps> = ({ defaultTab }) => {
             )}
           </div>
         </header>
-
-        {/* Mobile Horizontal Tab Navigation */}
-        <div className="md:hidden flex items-center gap-2 overflow-x-auto px-4 py-2.5 bg-surface border-b border-[rgba(20,22,26,0.06)]">
-          <button
-            type="button"
-            onClick={() => {
-              setActiveNav('discover');
-              setSearchParams({ tab: 'discover' });
-            }}
-            className={`px-3 py-1.5 rounded-pill text-xs font-semibold shrink-0 transition-all flex items-center gap-1 ${
-              activeNav === 'discover' || activeNav === 'home'
-                ? 'bg-accent text-text-inverse font-bold'
-                : 'bg-surface-alt text-text-secondary'
-            }`}
-          >
-            <MapPin size={12} /> Discover
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate('/itinerary')}
-            className="px-3 py-1.5 rounded-pill text-xs font-semibold shrink-0 bg-surface-alt text-text-secondary transition-all flex items-center gap-1"
-          >
-            <Calendar size={12} /> Itinerary
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setActiveNav('saved');
-              setSearchParams({ tab: 'saved' });
-            }}
-            className={`px-3 py-1.5 rounded-pill text-xs font-semibold shrink-0 transition-all flex items-center gap-1 ${
-              activeNav === 'saved' ? 'bg-accent text-text-inverse font-bold' : 'bg-surface-alt text-text-secondary'
-            }`}
-          >
-            <Bookmark size={12} /> Saved ({savedCount})
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setActiveNav('messages');
-              setSearchParams({ tab: 'messages' });
-            }}
-            className={`px-3 py-1.5 rounded-pill text-xs font-semibold shrink-0 transition-all flex items-center gap-1 ${
-              activeNav === 'messages' ? 'bg-accent text-text-inverse font-bold' : 'bg-surface-alt text-text-secondary'
-            }`}
-          >
-            <MessageSquare size={12} /> Messages
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setActiveNav('settings');
-              setSearchParams({ tab: 'settings' });
-            }}
-            className={`px-3 py-1.5 rounded-pill text-xs font-semibold shrink-0 transition-all flex items-center gap-1 ${
-              activeNav === 'settings' ? 'bg-accent text-text-inverse font-bold' : 'bg-surface-alt text-text-secondary'
-            }`}
-          >
-            <Settings size={12} /> Settings
-          </button>
-        </div>
 
         {safetyNotice && (
           <div className="mx-8 mt-4 p-3 bg-accent-soft text-accent-dark rounded-card text-xs font-semibold flex items-center justify-between border border-accent/20">
