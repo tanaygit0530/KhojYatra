@@ -19,9 +19,12 @@ import {
   Check,
   ShieldCheck
 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useSessionStore } from '../../store/sessionStore';
 import { apiClient } from '../../lib/apiClient';
+import { SavedTab } from '../../features/saved/SavedTab';
+import { MessagesTab } from '../../features/messages/MessagesTab';
+import { SettingsTab } from '../../features/settings/SettingsTab';
 import {
   ConstraintIntake,
   ExperienceCategory,
@@ -48,10 +51,25 @@ const ACCESSIBILITY_OPTIONS = [
   { id: 'visual_aid', label: 'Audio / Visual Guidance' }
 ];
 
-export const TravelerApp: React.FC = () => {
+export interface TravelerAppProps {
+  defaultTab?: string;
+}
+
+export const TravelerApp: React.FC<TravelerAppProps> = ({ defaultTab }) => {
   const navigate = useNavigate();
-  const [activeNav, setActiveNav] = useState('discover');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const paramTab = searchParams.get('tab');
+  const initialTab = paramTab || defaultTab || 'discover';
+  const [activeNav, setActiveNav] = useState(initialTab);
   const sessionId = useSessionStore((state) => state.sessionId);
+  const savedCount = useSessionStore((state) => state.savedExperienceIds?.length || 0);
+
+  useEffect(() => {
+    const tab = searchParams.get('tab') || defaultTab;
+    if (tab && ['discover', 'saved', 'messages', 'settings', 'home'].includes(tab)) {
+      setActiveNav(tab);
+    }
+  }, [searchParams, defaultTab]);
 
   // Constraint Intake State
   const [locationMode, setLocationMode] = useState<'current' | 'planned'>('current');
@@ -419,8 +437,8 @@ export const TravelerApp: React.FC = () => {
     { id: 'home', label: 'Home', icon: <Compass size={18} /> },
     { id: 'discover', label: 'Discover', icon: <MapPin size={18} /> },
     { id: 'itinerary', label: 'My Itinerary', icon: <Calendar size={18} />, badge: budgetStatus ? (budgetStatus.total_committed > 0 ? 1 : 0) : 0 },
-    { id: 'saved', label: 'Saved', icon: <Bookmark size={18} /> },
-    { id: 'messages', label: 'Messages', icon: <MessageSquare size={18} /> },
+    { id: 'saved', label: 'Saved', icon: <Bookmark size={18} />, badge: savedCount },
+    { id: 'messages', label: 'Messages', icon: <MessageSquare size={18} />, badge: 1 },
     { id: 'settings', label: 'Settings', icon: <Settings size={18} /> }
   ];
 
@@ -439,6 +457,7 @@ export const TravelerApp: React.FC = () => {
             navigate('/');
           } else {
             setActiveNav(id);
+            setSearchParams({ tab: id });
           }
         }}
         footerContent={
@@ -471,49 +490,207 @@ export const TravelerApp: React.FC = () => {
         <header className="px-8 py-5 bg-surface border-b border-[rgba(20,22,26,0.06)] flex items-center justify-between sticky top-0 z-20">
           <div className="flex items-center gap-3">
             <h1 className="font-display font-black text-xl text-text-primary tracking-tight">
-              Constraint Intake & Discover
+              {activeNav === 'saved' && 'Saved Experiences & Wishlist'}
+              {activeNav === 'messages' && 'Host & Community Messages'}
+              {activeNav === 'settings' && 'Traveler Preferences & Settings'}
+              {(activeNav === 'discover' || activeNav === 'home') && 'Constraint Intake & Discover'}
             </h1>
             <Badge variant="highlight" size="sm" icon={<Sparkles size={12} />}>
-              Phase 7 Complete
+              {activeNav === 'saved' && `${savedCount} Bookmarks`}
+              {activeNav === 'messages' && 'Live Host Chat'}
+              {activeNav === 'settings' && 'Configuration'}
+              {(activeNav === 'discover' || activeNav === 'home') && 'Phase 7 Complete'}
             </Badge>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Link
-              to="/admin/ingestion-queue"
-              className="text-xs font-semibold text-text-secondary hover:text-accent transition-colors hidden md:block"
-            >
-              Admin Queue (§24)
-            </Link>
-            <Link
-              to="/design-system"
-              className="text-xs font-semibold text-text-secondary hover:text-accent transition-colors hidden sm:block"
-            >
-              Tokens & Showcase (§2)
-            </Link>
-            {/* Phase 25: Surprise Me Mode 1-click button */}
-            <PillButton
-              size="sm"
-              icon={<Sparkles size={13} />}
-              onClick={handleSurpriseMe}
-              disabled={surpriseLoading}
-            >
-              {surpriseLoading ? 'Surprising...' : '✨ Surprise Me'}
-            </PillButton>
-            <PillButtonOutline
-              size="sm"
-              icon={<RotateCcw size={13} />}
+          {/* Desktop Tab Switcher */}
+          <nav className="hidden md:flex items-center gap-1 bg-surface-alt/70 p-1 rounded-pill border border-[rgba(20,22,26,0.06)]">
+            <button
+              type="button"
               onClick={() => {
-                setDurationMinutes(120);
-                setBudgetMax(1500);
-                setSelectedInterests(['food_culinary', 'cultural_heritage']);
-                setIsSurpriseMode(false);
+                setActiveNav('discover');
+                setSearchParams({ tab: 'discover' });
               }}
+              className={`px-3 py-1 rounded-pill text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                activeNav === 'discover' || activeNav === 'home'
+                  ? 'bg-accent text-text-inverse font-bold shadow-xs'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-surface'
+              }`}
             >
-              Reset Form
-            </PillButtonOutline>
+              <MapPin size={13} /> Discover
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/itinerary')}
+              className="px-3 py-1 rounded-pill text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-surface transition-all flex items-center gap-1.5"
+            >
+              <Calendar size={13} /> Itinerary
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveNav('saved');
+                setSearchParams({ tab: 'saved' });
+              }}
+              className={`px-3 py-1 rounded-pill text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                activeNav === 'saved'
+                  ? 'bg-accent text-text-inverse font-bold shadow-xs'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-surface'
+              }`}
+            >
+              <Bookmark size={13} /> Saved
+              {savedCount > 0 && (
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    activeNav === 'saved' ? 'bg-white/30 text-white' : 'bg-accent-soft text-accent'
+                  }`}
+                >
+                  {savedCount}
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveNav('messages');
+                setSearchParams({ tab: 'messages' });
+              }}
+              className={`px-3 py-1 rounded-pill text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                activeNav === 'messages'
+                  ? 'bg-accent text-text-inverse font-bold shadow-xs'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-surface'
+              }`}
+            >
+              <MessageSquare size={13} /> Messages
+              <span
+                className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                  activeNav === 'messages' ? 'bg-white/30 text-white' : 'bg-accent-soft text-accent'
+                }`}
+              >
+                1
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveNav('settings');
+                setSearchParams({ tab: 'settings' });
+              }}
+              className={`px-3 py-1 rounded-pill text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                activeNav === 'settings'
+                  ? 'bg-accent text-text-inverse font-bold shadow-xs'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-surface'
+              }`}
+            >
+              <Settings size={13} /> Settings
+            </button>
+          </nav>
+
+          <div className="flex items-center gap-3">
+            {activeNav !== 'discover' && activeNav !== 'home' ? (
+              <PillButton size="sm" icon={<MapPin size={13} />} onClick={() => { setActiveNav('discover'); setSearchParams({ tab: 'discover' }); }}>
+                Back to Discovery
+              </PillButton>
+            ) : (
+              <>
+                <Link
+                  to="/admin/ingestion-queue"
+                  className="text-xs font-semibold text-text-secondary hover:text-accent transition-colors hidden md:block"
+                >
+                  Admin Queue (§24)
+                </Link>
+                <Link
+                  to="/design-system"
+                  className="text-xs font-semibold text-text-secondary hover:text-accent transition-colors hidden sm:block"
+                >
+                  Tokens & Showcase (§2)
+                </Link>
+                {/* Phase 25: Surprise Me Mode 1-click button */}
+                <PillButton
+                  size="sm"
+                  icon={<Sparkles size={13} />}
+                  onClick={handleSurpriseMe}
+                  disabled={surpriseLoading}
+                >
+                  {surpriseLoading ? 'Surprising...' : '✨ Surprise Me'}
+                </PillButton>
+                <PillButtonOutline
+                  size="sm"
+                  icon={<RotateCcw size={13} />}
+                  onClick={() => {
+                    setDurationMinutes(120);
+                    setBudgetMax(1500);
+                    setSelectedInterests(['food_culinary', 'cultural_heritage']);
+                    setIsSurpriseMode(false);
+                  }}
+                >
+                  Reset Form
+                </PillButtonOutline>
+              </>
+            )}
           </div>
         </header>
+
+        {/* Mobile Horizontal Tab Navigation */}
+        <div className="md:hidden flex items-center gap-2 overflow-x-auto px-4 py-2.5 bg-surface border-b border-[rgba(20,22,26,0.06)]">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveNav('discover');
+              setSearchParams({ tab: 'discover' });
+            }}
+            className={`px-3 py-1.5 rounded-pill text-xs font-semibold shrink-0 transition-all flex items-center gap-1 ${
+              activeNav === 'discover' || activeNav === 'home'
+                ? 'bg-accent text-text-inverse font-bold'
+                : 'bg-surface-alt text-text-secondary'
+            }`}
+          >
+            <MapPin size={12} /> Discover
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/itinerary')}
+            className="px-3 py-1.5 rounded-pill text-xs font-semibold shrink-0 bg-surface-alt text-text-secondary transition-all flex items-center gap-1"
+          >
+            <Calendar size={12} /> Itinerary
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveNav('saved');
+              setSearchParams({ tab: 'saved' });
+            }}
+            className={`px-3 py-1.5 rounded-pill text-xs font-semibold shrink-0 transition-all flex items-center gap-1 ${
+              activeNav === 'saved' ? 'bg-accent text-text-inverse font-bold' : 'bg-surface-alt text-text-secondary'
+            }`}
+          >
+            <Bookmark size={12} /> Saved ({savedCount})
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveNav('messages');
+              setSearchParams({ tab: 'messages' });
+            }}
+            className={`px-3 py-1.5 rounded-pill text-xs font-semibold shrink-0 transition-all flex items-center gap-1 ${
+              activeNav === 'messages' ? 'bg-accent text-text-inverse font-bold' : 'bg-surface-alt text-text-secondary'
+            }`}
+          >
+            <MessageSquare size={12} /> Messages
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveNav('settings');
+              setSearchParams({ tab: 'settings' });
+            }}
+            className={`px-3 py-1.5 rounded-pill text-xs font-semibold shrink-0 transition-all flex items-center gap-1 ${
+              activeNav === 'settings' ? 'bg-accent text-text-inverse font-bold' : 'bg-surface-alt text-text-secondary'
+            }`}
+          >
+            <Settings size={12} /> Settings
+          </button>
+        </div>
 
         {safetyNotice && (
           <div className="mx-8 mt-4 p-3 bg-accent-soft text-accent-dark rounded-card text-xs font-semibold flex items-center justify-between border border-accent/20">
@@ -529,8 +706,24 @@ export const TravelerApp: React.FC = () => {
           </div>
         )}
 
-        {/* Dashboard Content Grid */}
-        <div className="p-6 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8 overflow-y-auto max-w-7xl">
+        {/* Tab Views: Saved, Messages, Settings */}
+        {activeNav === 'saved' && (
+          <SavedTab
+            onAddToItinerary={(id) => handleAddToItinerary(id)}
+            onExploreClick={() => {
+              setActiveNav('discover');
+              setSearchParams({ tab: 'discover' });
+            }}
+          />
+        )}
+
+        {activeNav === 'messages' && <MessagesTab />}
+
+        {activeNav === 'settings' && <SettingsTab />}
+
+        {/* Dashboard Content Grid (Discover/Home mode) */}
+        {(activeNav === 'discover' || activeNav === 'home') && (
+          <div className="p-6 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8 overflow-y-auto max-w-7xl">
           {/* Left Column: Constraint Intake Form (8 cols) */}
           <div className="lg:col-span-8 space-y-6">
             <Card variant="surface-alt" className="space-y-6">
@@ -1087,6 +1280,7 @@ export const TravelerApp: React.FC = () => {
             </Card>
           </div>
         </div>
+        )}
 
         {/* Phase 18: Group Modal */}
         {isGroupModalOpen && (

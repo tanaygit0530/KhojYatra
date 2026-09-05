@@ -26,6 +26,13 @@ export const App: React.FC = () => {
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/itinerary" element={<ItineraryPage />} />
         <Route path="/app/itinerary" element={<ItineraryPage />} />
+        <Route path="/saved" element={<TravelerApp defaultTab="saved" />} />
+        <Route path="/messages" element={<TravelerApp defaultTab="messages" />} />
+        <Route path="/settings" element={<TravelerApp defaultTab="settings" />} />
+        <Route path="/app/saved" element={<TravelerApp defaultTab="saved" />} />
+        <Route path="/app/messages" element={<TravelerApp defaultTab="messages" />} />
+        <Route path="/app/settings" element={<TravelerApp defaultTab="settings" />} />
+        <Route path="/app" element={<TravelerApp />} />
         <Route path="/app/*" element={<TravelerApp />} />
         <Route path="/provider/onboarding" element={<ProviderOnboardingPage />} />
         <Route path="/provider/*" element={<ProviderApp />} />
