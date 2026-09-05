@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { aiIntakeService } from '../services/aiIntakeService.js';
 import { createSuccessResponse, createErrorResponse } from '@khojyatra/types';
+import { intakeRateLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
 
@@ -10,7 +11,7 @@ const ParseIntakeSchema = z.object({
 });
 
 // POST /api/v1/ai/parse-intake (Phase 20)
-router.post('/ai/parse-intake', async (req: Request, res: Response) => {
+router.post('/ai/parse-intake', intakeRateLimiter, async (req: Request, res: Response) => {
   const parseResult = ParseIntakeSchema.safeParse(req.body);
   if (!parseResult.success) {
     return res.status(400).json(

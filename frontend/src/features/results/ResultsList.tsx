@@ -16,7 +16,8 @@ import {
   X,
   AlertTriangle,
   HelpCircle,
-  CreditCard
+  CreditCard,
+  Flag
 } from 'lucide-react';
 import {
   RecommendationItem,
@@ -35,6 +36,7 @@ export interface ResultsListProps {
   onAddToItinerary: (experienceId: string) => void;
   isGroupMode?: boolean;
   onVote?: (experienceId: string, vote: 1 | -1) => void;
+  relaxedConstraints?: string[];
 }
 
 export const ResultsList: React.FC<ResultsListProps> = ({
@@ -43,7 +45,8 @@ export const ResultsList: React.FC<ResultsListProps> = ({
   onUpdateRecommendations,
   onAddToItinerary,
   isGroupMode = false,
-  onVote
+  onVote,
+  relaxedConstraints
 }) => {
   const [replanning, setReplanning] = useState(false);
   const [replanNotice, setReplanNotice] = useState<string | null>(null);
@@ -60,6 +63,34 @@ export const ResultsList: React.FC<ResultsListProps> = ({
 
   // Phase 27: Reservation checkout modal state
   const [selectedBookingExp, setSelectedBookingExp] = useState<Experience | null>(null);
+
+  // Phase 28: Experience Reporting state
+  const [reportingExp, setReportingExp] = useState<Experience | null>(null);
+  const [reportReason, setReportReason] = useState<'fraud' | 'inaccurate' | 'safety' | 'other'>('inaccurate');
+  const [reportDetails, setReportDetails] = useState('');
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportNotice, setReportNotice] = useState<string | null>(null);
+
+  const handleSubmitReport = async () => {
+    if (!reportingExp || !reportDetails.trim()) return;
+    setReportLoading(true);
+    try {
+      await apiClient(`experiences/${reportingExp.id}/report`, {
+        method: 'POST',
+        body: JSON.stringify({ reason: reportReason, details: reportDetails.trim() })
+      });
+      setReportNotice('Report submitted. Thank you for keeping KhojYatra authentic!');
+      setTimeout(() => {
+        setReportNotice(null);
+        setReportingExp(null);
+        setReportDetails('');
+      }, 2500);
+    } catch (err: any) {
+      alert(`Report submission error: ${err.message}`);
+    } finally {
+      setReportLoading(false);
+    }
+  };
 
   const handleQuickReplan = async (type: ReplanChangeType, value?: any, label?: string) => {
     setReplanning(true);
@@ -192,6 +223,28 @@ export const ResultsList: React.FC<ResultsListProps> = ({
         )}
       </div>
 
+      {/* Phase 28: Auto-Relaxation Callout Banner */}
+      {relaxedConstraints && relaxedConstraints.length > 0 && (
+        <div className="p-3.5 bg-accent-soft/60 border border-accent/30 rounded-xl text-xs text-text-primary flex items-start gap-2.5">
+          <Info size={16} className="text-accent flex-shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <span className="font-bold text-text-primary block">
+              Auto-Relaxed Constraints Applied
+            </span>
+            <p className="text-text-secondary text-[11px] leading-relaxed">
+              No exact matches were found within strict initial filters. Parameters were automatically expanded so you don't miss out on authentic experiences:
+            </p>
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {relaxedConstraints.map((c, i) => (
+                <span key={i} className="px-2 py-0.5 bg-surface rounded-pill text-[11px] font-semibold text-accent border border-accent/20">
+                  {c}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 2. Vertical list of Ranked Cards */}
       <div className="space-y-4">
         {recommendations.map((rec, index) => {
@@ -272,9 +325,19 @@ export const ResultsList: React.FC<ResultsListProps> = ({
                       )}
                     </div>
 
-                    <h4 className="font-display font-bold text-base text-text-primary truncate">
-                      {rec.experience.title}
-                    </h4>
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="font-display font-bold text-base text-text-primary truncate">
+                        {rec.experience.title}
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => setReportingExp(rec.experience)}
+                        className="text-text-secondary/50 hover:text-danger p-1 rounded transition-colors flex-shrink-0"
+                        title="Report inaccurate or suspicious listing"
+                      >
+                        <Flag size={13} />
+                      </button>
+                    </div>
 
                     <div className="flex flex-wrap items-center gap-3 text-xs text-text-secondary">
                       <span className="font-bold text-text-primary">
@@ -511,6 +574,81 @@ export const ResultsList: React.FC<ResultsListProps> = ({
             onAddToItinerary(selectedBookingExp.id);
           }}
         />
+      )}
+
+      {/* Phase 28: Report Inaccurate / Malicious Listing Modal */}
+      {reportingExp && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-surface border border-[rgba(20,22,26,0.1)] rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2">
+                <Flag size={20} className="text-danger" />
+                <div>
+                  <h3 className="font-display font-bold text-base text-text-primary">
+                    Report Listing
+                  </h3>
+                  <p className="text-xs text-text-secondary truncate max-w-[240px]">
+                    {reportingExp.title}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReportingExp(null)}
+                className="p-1 rounded-lg text-text-secondary hover:text-text-primary"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {reportNotice ? (
+              <div className="p-4 bg-accent-soft rounded-xl text-center space-y-2">
+                <CheckCircle2 size={24} className="text-accent mx-auto" />
+                <p className="text-xs font-semibold text-text-primary">{reportNotice}</p>
+              </div>
+            ) : (
+              <div className="space-y-3 text-xs">
+                <div>
+                  <label className="block text-text-secondary font-semibold mb-1">Reason</label>
+                  <select
+                    value={reportReason}
+                    onChange={(e) => setReportReason(e.target.value as any)}
+                    className="w-full bg-surface-alt border border-[rgba(20,22,26,0.1)] rounded-lg p-2 text-xs text-text-primary"
+                  >
+                    <option value="inaccurate">Inaccurate Details / Timing / Pricing</option>
+                    <option value="fraud">Fraud / Counterfeit / Scammer</option>
+                    <option value="safety">Safety / Harassment Concern</option>
+                    <option value="other">Other Issue</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-text-secondary font-semibold mb-1">Details</label>
+                  <textarea
+                    value={reportDetails}
+                    onChange={(e) => setReportDetails(e.target.value)}
+                    placeholder="Describe what is inaccurate or suspicious about this experience..."
+                    rows={3}
+                    className="w-full bg-surface-alt border border-[rgba(20,22,26,0.1)] rounded-lg p-2 text-xs text-text-primary focus:outline-none focus:border-accent"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <PillButtonOutline size="sm" onClick={() => setReportingExp(null)}>
+                    Cancel
+                  </PillButtonOutline>
+                  <PillButton
+                    size="sm"
+                    onClick={handleSubmitReport}
+                    disabled={reportLoading || !reportDetails.trim()}
+                  >
+                    {reportLoading ? 'Submitting...' : 'Submit Report'}
+                  </PillButton>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </section>
   );

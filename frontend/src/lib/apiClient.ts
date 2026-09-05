@@ -56,10 +56,21 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
     requestHeaders['Authorization'] = `Bearer ${authToken}`;
   }
 
-  const response = await fetch(url, {
-    headers: requestHeaders,
-    ...customConfig
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: requestHeaders,
+      ...customConfig
+    });
+  } catch (netErr: any) {
+    // Phase 28: Network failure recovery during demos
+    const fallback = (await import('./offlineFallback')).getOfflineFallback(endpoint, options);
+    if (fallback) {
+      console.warn(`[KhojYatra Offline Fallback] Using cached seed data for endpoint: ${endpoint}`);
+      return fallback as T;
+    }
+    throw new AppApiError('UPSTREAM_UNAVAILABLE', 'Network unreachable. Please check connection.', 0);
+  }
 
   const json = await response.json().catch(() => null);
 

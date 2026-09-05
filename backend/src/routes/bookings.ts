@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { bookingService } from '../services/bookingService.js';
 import { createSuccessResponse, createErrorResponse } from '@khojyatra/types';
+import { bookingRateLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
 
@@ -22,7 +23,7 @@ const ConfirmPaymentSchema = z.object({
 });
 
 // POST /api/v1/bookings/reserve
-router.post('/bookings/reserve', (req: Request, res: Response) => {
+router.post('/bookings/reserve', bookingRateLimiter, (req: Request, res: Response) => {
   const parse = ReserveSchema.safeParse(req.body);
   if (!parse.success) {
     return res.status(400).json(

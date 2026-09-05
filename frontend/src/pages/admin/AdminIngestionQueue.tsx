@@ -6,7 +6,9 @@ import { apiClient } from '../../lib/apiClient';
 import { SocialStagingItem } from '@khojyatra/types';
 
 export const AdminIngestionQueue: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'social_queue' | 'flagged_reports'>('social_queue');
   const [stagedItems, setStagedItems] = useState<SocialStagingItem[]>([]);
+  const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -14,8 +16,12 @@ export const AdminIngestionQueue: React.FC = () => {
   const fetchQueue = async () => {
     setLoading(true);
     try {
-      const res = await apiClient<{ staged_items: SocialStagingItem[] }>('admin/social-staging');
-      setStagedItems(res.staged_items || []);
+      const [stagedRes, repRes] = await Promise.all([
+        apiClient<{ staged_items: SocialStagingItem[] }>('admin/social-staging').catch(() => ({ staged_items: [] })),
+        apiClient<{ reports: any[] }>('admin/reports').catch(() => ({ reports: [] }))
+      ]);
+      setStagedItems(stagedRes.staged_items || []);
+      setReports(repRes.reports || []);
     } catch (err: any) {
       console.error(err);
     } finally {
@@ -50,6 +56,23 @@ export const AdminIngestionQueue: React.FC = () => {
       await fetchQueue();
     } catch (err: any) {
       alert(`Rejection error: ${err.message}`);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleResolveReport = async (reportId: string, action: 'unpublish' | 'dismiss') => {
+    setActionLoading(reportId);
+    try {
+      await apiClient(`admin/reports/${reportId}/resolve`, {
+        method: 'POST',
+        body: JSON.stringify({ action })
+      });
+      setNotice(action === 'unpublish' ? 'Listing unpublished from catalog.' : 'Report dismissed.');
+      setTimeout(() => setNotice(null), 4000);
+      await fetchQueue();
+    } catch (err: any) {
+      alert(`Report action note: ${err.message}`);
     } finally {
       setActionLoading(null);
     }
@@ -100,11 +123,39 @@ export const AdminIngestionQueue: React.FC = () => {
           </div>
         )}
 
-        {/* Queue Items */}
-        {loading ? (
-          <p className="text-xs text-text-secondary">Loading pending submissions...</p>
-        ) : stagedItems.length === 0 ? (
-          <Card variant="surface" className="text-center py-12 space-y-2">
+        {/* Navigation Tabs */}
+        <div className="flex gap-3 border-b border-[rgba(20,22,26,0.08)] pb-2">
+          <button
+            type="button"
+            onClick={() => setActiveTab('social_queue')}
+            className={`px-4 py-2 rounded-pill text-xs font-bold transition-all ${
+              activeTab === 'social_queue'
+                ? 'bg-accent text-text-inverse'
+                : 'bg-surface text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            Social Submissions ({stagedItems.filter(i => i.status === 'pending').length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('flagged_reports')}
+            className={`px-4 py-2 rounded-pill text-xs font-bold transition-all ${
+              activeTab === 'flagged_reports'
+                ? 'bg-accent text-text-inverse'
+                : 'bg-surface text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            Flagged Reports ({reports.filter(r => r.status === 'pending').length})
+          </button>
+        </div>
+
+        {/* TAB 1: Social Ingestion Queue */}
+        {activeTab === 'social_queue' && (
+          <>
+            {loading ? (
+              <p className="text-xs text-text-secondary">Loading pending submissions...</p>
+            ) : stagedItems.length === 0 ? (
+              <Card variant="surface" className="text-center py-12 space-y-2">
             <p className="font-bold text-sm">Queue is clean</p>
             <p className="text-xs text-text-secondary">No pending social submissions waiting for review.</p>
           </Card>
@@ -200,6 +251,66 @@ export const AdminIngestionQueue: React.FC = () => {
             ))}
           </div>
         )}
+        </>
+      )}
+
+      {/* TAB 2: Flagged Reports */}
+      {activeTab === 'flagged_reports' && (
+        <div className="space-y-4">
+          {reports.length === 0 ? (
+            <Card variant="surface" className="text-center py-12 space-y-2">
+              <p className="font-bold text-sm">No flagged reports</p>
+              <p className="text-xs text-text-secondary">No listings have been flagged by travelers.</p>
+            </Card>
+          ) : (
+            reports.map((rep) => (
+              <Card key={rep.id} variant="surface-alt" className="p-5 space-y-3 border border-[rgba(20,22,26,0.08)]">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-xs">
+                      <Badge variant={rep.reason === 'fraud' ? 'danger' : 'warning'} size="sm">
+                        REASON: {rep.reason.toUpperCase()}
+                      </Badge>
+                      <Badge variant={rep.status === 'resolved' ? 'neutral' : 'accent'} size="sm">
+                        STATUS: {rep.status.toUpperCase()}
+                      </Badge>
+                      <span className="text-text-secondary text-[11px]">
+                        Reported {new Date(rep.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <h3 className="font-display font-bold text-base text-text-primary">
+                      {rep.experience_title}
+                    </h3>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-surface rounded-card border border-[rgba(20,22,26,0.06)] text-xs text-text-secondary">
+                  <strong>Traveler Note:</strong> "{rep.details}"
+                </div>
+
+                {rep.status === 'pending' && (
+                  <div className="flex items-center justify-end gap-3 pt-2 border-t border-[rgba(20,22,26,0.06)]">
+                    <PillButtonOutline
+                      size="sm"
+                      disabled={actionLoading === rep.id}
+                      onClick={() => handleResolveReport(rep.id, 'dismiss')}
+                    >
+                      Dismiss Report
+                    </PillButtonOutline>
+                    <PillButton
+                      size="sm"
+                      disabled={actionLoading === rep.id}
+                      onClick={() => handleResolveReport(rep.id, 'unpublish')}
+                    >
+                      Unpublish Listing Immediately
+                    </PillButton>
+                  </div>
+                )}
+              </Card>
+            ))
+          )}
+        </div>
+      )}
       </div>
     </div>
   );

@@ -59,6 +59,27 @@ class DataStore {
   // Phase 27: Bookings
   public bookings: Booking[] = [];
 
+  // Phase 28: Experience Reports (Malicious/Inaccurate Listings)
+  public reports: {
+    id: string;
+    experience_id: string;
+    reporter_session_id: string;
+    reason: 'fraud' | 'inaccurate' | 'safety' | 'other';
+    details: string;
+    status: 'pending' | 'resolved' | 'dismissed';
+    created_at: string;
+  }[] = [
+    {
+      id: 'rep-seed-1',
+      experience_id: 'e1111111-1111-4111-8111-111111111111',
+      reporter_session_id: 'sample-user-session',
+      reason: 'inaccurate',
+      details: 'Meeting location moved 200m down the road past the gate.',
+      status: 'pending',
+      created_at: new Date(Date.now() - 3600 * 1000 * 2).toISOString()
+    }
+  ];
+
   public getExperiences(options?: { category?: string; featured?: boolean; search?: string }): Experience[] {
     let list = this.experiences.filter(e => e.offering_status === 'published');
     if (options?.category) {

@@ -1,7 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { socialIngestionService } from '../services/socialIngestionService.js';
+import { requireAdmin } from '../middleware/authRoleMiddleware.js';
 
 const router = Router();
+
+// Phase 29: Protect all admin endpoints with strict admin authorization
+router.use(requireAdmin);
 
 // GET /api/v1/admin/social-staging
 router.get('/social-staging', (_req: Request, res: Response) => {

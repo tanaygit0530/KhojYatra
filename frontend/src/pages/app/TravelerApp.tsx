@@ -77,6 +77,7 @@ export const TravelerApp: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [recommendations, setRecommendations] = useState<RecommendationItem[]>([]);
+  const [relaxedConstraints, setRelaxedConstraints] = useState<string[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
 
   // Phase 17: Live Budget Status state
@@ -160,12 +161,13 @@ export const TravelerApp: React.FC = () => {
     };
 
     try {
-      const response = await apiClient<{ recommendations: RecommendationItem[] }>('recommendations', {
+      const response = await apiClient<{ recommendations: RecommendationItem[]; relaxed_constraints?: string[] }>('recommendations', {
         method: 'POST',
         body: JSON.stringify(payload)
       });
 
       setRecommendations(response.recommendations || []);
+      setRelaxedConstraints(response.relaxed_constraints || []);
       setHasSearched(true);
 
       // Phase 21: Query similar community itineraries ("Travelers Like You")
@@ -905,6 +907,7 @@ export const TravelerApp: React.FC = () => {
                 onAddToItinerary={(id) => handleAddToItinerary(id)}
                 isGroupMode={isGroupMode}
                 onVote={handleVote}
+                relaxedConstraints={relaxedConstraints}
               />
             )}
           </div>

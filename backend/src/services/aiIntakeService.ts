@@ -154,11 +154,17 @@ export class AiIntakeService {
       };
     }
 
+    const hasAnyEntity = !!(extracted.duration_minutes || extracted.budget_max || extracted.destination || extracted.interests?.length || extracted.group_type);
+    const confidence = hasAnyEntity ? 0.92 : 0.35;
+    const explanation = hasAnyEntity
+      ? `Parsed ${extracted.duration_minutes ? `${extracted.duration_minutes}m duration, ` : ''}${extracted.budget_max ? `₹${extracted.budget_max} budget, ` : ''}${extracted.interests?.length ? `${extracted.interests.length} categories, ` : ''}ready for review.`
+      : 'Could not extract specific constraints from free-text. Loaded standard fallback settings — please review and customize using the chips below.';
+
     return {
       parsed_intake: parsedIntake,
-      confidence: 0.92,
+      confidence,
       extracted_entities: extracted,
-      explanation: `Parsed ${extracted.duration_minutes ? `${extracted.duration_minutes}m duration, ` : ''}${extracted.budget_max ? `₹${extracted.budget_max} budget, ` : ''}${extracted.interests?.length ? `${extracted.interests.length} categories, ` : ''}ready for confirmation.`
+      explanation
     };
   }
 

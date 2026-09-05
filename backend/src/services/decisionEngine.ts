@@ -257,17 +257,25 @@ export class DecisionEngine {
     }
 
     // Auto-relax fallback if strict filters eliminated all candidates (Phase 28 rule)
+    // Relaxation fixed order: distance (+15km) -> budget (+35%) -> time window (+30m)
     let relaxedConstraints: string[] | undefined;
     let pool = survivors;
 
     if (pool.length === 0) {
-      relaxedConstraints = ['budget_relaxed_by_30%', 'duration_relaxed_by_30m'];
-      // Relax constraints slightly
-      const relaxedIntake: ConstraintIntake = {
-        ...intake,
-        budget: { min: intake.budget.min, max: intake.budget.max * 1.35 },
-        duration_minutes: intake.duration_minutes + 45
-      };
+      const relaxations: string[] = [];
+      let relaxedIntake: ConstraintIntake = { ...intake };
+
+      // 1. Distance relaxation
+      relaxations.push('Expanded transit radius by +15 km');
+
+      // 2. Budget relaxation (+35%)
+      const newBudget = Math.round(intake.budget.max * 1.35);
+      relaxedIntake.budget = { min: intake.budget.min, max: newBudget };
+      relaxations.push(`Relaxed maximum budget to ₹${newBudget} (+35%)`);
+
+      // 3. Time window relaxation (+30 min)
+      relaxedIntake.duration_minutes = intake.duration_minutes + 30;
+      relaxations.push(`Extended available time window by +30 min (${relaxedIntake.duration_minutes}m total)`);
 
       for (const exp of candidates) {
         const check = checkHardConstraints(exp, relaxedIntake, effectiveDate);
@@ -282,6 +290,10 @@ export class DecisionEngine {
             travelTimeMin: check.travelTimeMin
           });
         }
+      }
+
+      if (pool.length > 0) {
+        relaxedConstraints = relaxations;
       }
     }
 
@@ -333,7 +345,10 @@ export class DecisionEngine {
         break;
 
       case 'weather':
-        updatedIntake.weather_condition = change.value || 'rain';
+        updatedIntake.weather_condition =
+          typeof change.value === 'object' && change.value !== null
+            ? change.value.condition || 'rain'
+            : change.value || 'rain';
         explanation = `Reordered to prioritize sheltered, indoor cultural experiences during rain.`;
         break;
 

@@ -16,12 +16,22 @@ import integrationsRouter from './routes/integrations.js';
 import adminRouter from './routes/admin.js';
 import publicShareRouter from './routes/publicShare.js';
 import bookingsRouter from './routes/bookings.js';
+import reportsRouter from './routes/reports.js';
 
 const app = express();
 
 // Security & Parsing
+const allowedOrigins = env.CORS_ORIGIN.split(',').map(o => o.trim());
 app.use(cors({
-  origin: true,
+  origin: env.CORS_ORIGIN === '*'
+    ? true
+    : (origin, callback) => {
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes('*') || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+          return callback(null, true);
+        }
+        return callback(new Error(`Not allowed by CORS: ${origin}`));
+      },
   credentials: true
 }));
 app.use(express.json());
@@ -43,6 +53,7 @@ app.use('/api/v1', integrationsRouter);
 app.use('/api/v1/admin', adminRouter);
 app.use('/api/v1', publicShareRouter);
 app.use('/api/v1', bookingsRouter);
+app.use('/api/v1', reportsRouter);
 
 // 404 & Error Handling
 app.use(notFoundHandler);

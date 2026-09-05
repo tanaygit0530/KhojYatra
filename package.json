@@ -16,7 +16,10 @@
     "build": "npm run build --workspaces --if-present",
     "lint": "eslint . --ext .ts,.tsx,.js",
     "check:security": "node ./scripts/check-security.js",
-    "seed": "npm run seed --workspace=backend"
+    "seed": "npm run seed --workspace=backend",
+    "demo:script": "npm run demo:script --workspace=backend",
+    "test": "npm test --workspace=backend",
+    "verify:deploy": "node scripts/verify-deployment.js"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",

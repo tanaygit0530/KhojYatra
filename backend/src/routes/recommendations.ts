@@ -7,6 +7,7 @@ import {
 } from '@khojyatra/types';
 import { decisionEngine } from '../services/decisionEngine.js';
 import { store } from '../data/store.js';
+import { searchRateLimiter, bookingRateLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
 
@@ -17,7 +18,7 @@ import { itineraryPlanner } from '../services/itineraryPlanner.js';
 import { demandService } from '../services/demandService.js';
 
 // POST /api/v1/recommendations
-router.post('/recommendations', (req: Request, res: Response) => {
+router.post('/recommendations', searchRateLimiter, (req: Request, res: Response) => {
   const parseResult = ConstraintIntakeSchema.safeParse(req.body);
   if (!parseResult.success) {
     return res.status(400).json(
@@ -58,7 +59,7 @@ router.post('/recommendations', (req: Request, res: Response) => {
 });
 
 // POST /api/v1/recommendations/replan
-router.post('/recommendations/replan', (req: Request, res: Response) => {
+router.post('/recommendations/replan', bookingRateLimiter, (req: Request, res: Response) => {
   const parseResult = ReplanRequestSchema.safeParse(req.body);
   if (!parseResult.success) {
     return res.status(400).json(
