@@ -46,7 +46,7 @@ export interface SeedCommunityItinerary {
 // 1. Providers
 export const seedProviders: SeedProvider[] = [
   {
-    id: 'p1111111-1111-4111-8111-111111111111',
+    id: 'a1111111-1111-4111-8111-111111111111',
     name: 'Dilli Khana & Heritage Guild',
     verification_status: 'verified',
     locally_operated: true,
@@ -54,7 +54,7 @@ export const seedProviders: SeedProvider[] = [
     trust_score: 92
   },
   {
-    id: 'p2222222-2222-4222-8222-222222222222',
+    id: 'a2222222-2222-4222-8222-222222222222',
     name: 'Jaipur Craft & Clay Collective',
     verification_status: 'pending',
     locally_operated: true,
@@ -62,7 +62,7 @@ export const seedProviders: SeedProvider[] = [
     trust_score: 68
   },
   {
-    id: 'p3333333-3333-4333-8333-333333333333',
+    id: 'a3333333-3333-4333-8333-333333333333',
     name: 'Ganga Living Culture Guild',
     verification_status: 'verified',
     locally_operated: true,

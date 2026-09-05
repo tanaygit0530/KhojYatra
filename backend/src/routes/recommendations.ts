@@ -16,6 +16,7 @@ const sessionIntakes = new Map<string, any>();
 
 import { itineraryPlanner } from '../services/itineraryPlanner.js';
 import { demandService } from '../services/demandService.js';
+import { llmService } from '../services/llmService.js';
 
 // POST /api/v1/recommendations
 router.post('/recommendations', searchRateLimiter, (req: Request, res: Response) => {
@@ -59,7 +60,7 @@ router.post('/recommendations', searchRateLimiter, (req: Request, res: Response)
 });
 
 // POST /api/v1/recommendations/replan
-router.post('/recommendations/replan', bookingRateLimiter, (req: Request, res: Response) => {
+router.post('/recommendations/replan', bookingRateLimiter, async (req: Request, res: Response) => {
   const parseResult = ReplanRequestSchema.safeParse(req.body);
   if (!parseResult.success) {
     return res.status(400).json(
@@ -85,11 +86,28 @@ router.post('/recommendations/replan', bookingRateLimiter, (req: Request, res: R
     current_experience_ids
   );
 
+  let finalExplanation = explanation;
+  if (llmService.isConfigured()) {
+    try {
+      const weatherVal = change.type === 'weather' ? (typeof change.value === 'object' ? change.value.condition : change.value) : undefined;
+      const aiExplanation = await llmService.explainReplan(
+        change.type,
+        `Removed ${diff.removed.length} stop(s), added ${diff.added.length} stop(s)`,
+        { weather: weatherVal }
+      );
+      if (aiExplanation && aiExplanation.trim().length > 0) {
+        finalExplanation = aiExplanation;
+      }
+    } catch {
+      // Retain deterministic explanation on any upstream failure
+    }
+  }
+
   return res.status(200).json(
     createSuccessResponse({
       recommendations,
       diff,
-      explanation
+      explanation: finalExplanation
     })
   );
 });

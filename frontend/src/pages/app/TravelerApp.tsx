@@ -19,7 +19,7 @@ import {
   Check,
   ShieldCheck
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useSessionStore } from '../../store/sessionStore';
 import { apiClient } from '../../lib/apiClient';
 import {
@@ -49,6 +49,7 @@ const ACCESSIBILITY_OPTIONS = [
 ];
 
 export const TravelerApp: React.FC = () => {
+  const navigate = useNavigate();
   const [activeNav, setActiveNav] = useState('discover');
   const sessionId = useSessionStore((state) => state.sessionId);
 
@@ -145,12 +146,20 @@ export const TravelerApp: React.FC = () => {
     setLoading(true);
     setErrorMsg('');
 
+    let effectiveIso: string;
+    try {
+      const d = effectiveTime ? new Date(effectiveTime) : new Date();
+      effectiveIso = isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+    } catch {
+      effectiveIso = new Date().toISOString();
+    }
+
     const payload: ConstraintIntake = {
       location_context: {
         mode: locationMode,
         lat,
         lng,
-        effective_time: new Date(effectiveTime).toISOString()
+        effective_time: effectiveIso
       },
       duration_minutes: durationMinutes,
       budget: { min: budgetMin, max: budgetMax },
@@ -170,6 +179,14 @@ export const TravelerApp: React.FC = () => {
       setRelaxedConstraints(response.relaxed_constraints || []);
       setHasSearched(true);
 
+      // Smooth scroll down to results
+      setTimeout(() => {
+        const el = document.getElementById('traveler-results-section');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+
       // Phase 21: Query similar community itineraries ("Travelers Like You")
       try {
         const sim = await apiClient<{ data: any[] }>(
@@ -180,6 +197,7 @@ export const TravelerApp: React.FC = () => {
         // graceful fallback
       }
     } catch (err: any) {
+      console.error('Failed to fetch recommendations:', err);
       setErrorMsg(err.message || 'Failed to fetch recommendations');
     } finally {
       setLoading(false);
@@ -414,7 +432,15 @@ export const TravelerApp: React.FC = () => {
         subtitle="Traveler Mode"
         items={navItems}
         activeId={activeNav}
-        onSelect={setActiveNav}
+        onSelect={(id) => {
+          if (id === 'itinerary') {
+            navigate('/itinerary');
+          } else if (id === 'home') {
+            navigate('/');
+          } else {
+            setActiveNav(id);
+          }
+        }}
         footerContent={
           <div className="space-y-2">
             <div className="flex items-center justify-between text-[11px] text-text-secondary">
@@ -900,15 +926,17 @@ export const TravelerApp: React.FC = () => {
 
             {/* Results Preview with Persistent Something Changed Bar */}
             {hasSearched && (
-              <ResultsList
-                recommendations={recommendations}
-                sessionId={sessionId}
-                onUpdateRecommendations={(newRecs) => setRecommendations(newRecs)}
-                onAddToItinerary={(id) => handleAddToItinerary(id)}
-                isGroupMode={isGroupMode}
-                onVote={handleVote}
-                relaxedConstraints={relaxedConstraints}
-              />
+              <div id="traveler-results-section" className="scroll-mt-6">
+                <ResultsList
+                  recommendations={recommendations}
+                  sessionId={sessionId}
+                  onUpdateRecommendations={(newRecs) => setRecommendations(newRecs)}
+                  onAddToItinerary={(id) => handleAddToItinerary(id)}
+                  isGroupMode={isGroupMode}
+                  onVote={handleVote}
+                  relaxedConstraints={relaxedConstraints}
+                />
+              </div>
             )}
           </div>
 

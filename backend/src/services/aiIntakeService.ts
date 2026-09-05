@@ -1,33 +1,41 @@
 import { ConstraintIntake, ExperienceCategory } from '@khojyatra/types';
+import { llmService } from './llmService.js';
+import type { ParsedIntakeResult, ExtractedEntities } from './llmService.js';
 
-export interface ParsedIntakeResult {
-  parsed_intake: Partial<ConstraintIntake>;
-  confidence: number;
-  extracted_entities: {
-    duration_minutes?: number;
-    budget_max?: number;
-    destination?: string;
-    interests?: ExperienceCategory[];
-    group_size?: number;
-    group_type?: 'solo' | 'couple' | 'family' | 'friends';
-    accessibility_tags?: string[];
-  };
-  explanation: string;
-}
+export type { ParsedIntakeResult, ExtractedEntities };
 
 export class AiIntakeService {
   /**
    * Phase 20: Natural-Language Intake Parsing
-   * Robust dual-mode: LLM if ANTHROPIC_API_KEY is configured with strict 1.5s timeout,
+   * Robust dual-mode: Groq LLM (Llama 3.3 70B) if GROQ_API_KEY is configured with strict timeout,
    * with guaranteed deterministic regex/keyword NLP fallback.
+   * Feasibility decisions remain strictly deterministic in the backend decision engine.
    */
   public async parseIntake(text: string): Promise<ParsedIntakeResult> {
+    // 1. Attempt structured LLM extraction via Groq if configured
+    if (llmService.isConfigured()) {
+      try {
+        const groqResult = await llmService.extractTravelerIntent(text);
+        if (groqResult) {
+          return groqResult;
+        }
+      } catch (err: any) {
+        console.warn('⚠️ [AiIntakeService] Groq extraction encountered error, falling back to deterministic parser:', err.message);
+      }
+    }
+
+    // 2. Deterministic entity extraction fallback
+    return this.parseDeterministic(text);
+  }
+
+  /**
+   * Deterministic Entity Extraction fallback for offline/demo/unconfigured modes.
+   */
+  public parseDeterministic(text: string): ParsedIntakeResult {
     const raw = text.toLowerCase();
+    const extracted: ExtractedEntities = {};
 
-    // Deterministic Entity Extraction
-    const extracted: ParsedIntakeResult['extracted_entities'] = {};
-
-    // 1. Duration Extraction (e.g. "3 hours", "180 min", "half day", "2 hrs")
+    // 1. Duration Extraction (e.g. "6 hours", "3 hours", "180 min", "half day", "2 hrs")
     const hourMatch = raw.match(/(\d+(?:\.\d+)?)\s*(?:hour|hr|hours|hrs)/i);
     const minMatch = raw.match(/(\d+)\s*(?:min|minute|minutes|mins)/i);
     if (hourMatch) {
@@ -42,10 +50,12 @@ export class AiIntakeService {
       extracted.duration_minutes = 90;
     }
 
-    // 2. Budget Extraction (e.g. "₹1200", "rs 1500", "1500 inr", "budget 800", "under 2000")
+    // 2. Budget Extraction (e.g. "₹2000", "₹1200", "rs 1500", "1500 inr", "budget 800", "under 2000", "cheap")
     const budgetMatch = raw.match(/(?:₹|rs\.?|inr|budget|under)\s*(\d+)/i) || raw.match(/(\d+)\s*(?:rs|rupees|inr)/i);
     if (budgetMatch) {
       extracted.budget_max = parseInt(budgetMatch[1], 10);
+    } else if (raw.includes('cheap') || raw.includes('low budget') || raw.includes('affordable')) {
+      extracted.budget_max = 500;
     }
 
     // 3. Location / Destination Extraction
@@ -55,10 +65,19 @@ export class AiIntakeService {
       extracted.destination = 'Varanasi';
     } else if (raw.includes('jaipur') || raw.includes('rajasthan')) {
       extracted.destination = 'Jaipur';
+    } else if (raw.includes('pune')) {
+      extracted.destination = 'Pune';
+    } else if (raw.includes('mumbai') || raw.includes('bombay')) {
+      extracted.destination = 'Mumbai';
     }
 
-    // 4. Group Context Extraction (e.g. "with my friend", "couple", "family of 4", "solo")
-    if (raw.includes('solo') || raw.includes('myself') || raw.includes('alone')) {
+    // 4. Group Context Extraction (e.g. "5 people", "we are 5", "with my friend", "couple", "family of 4", "solo")
+    const peopleCountMatch = raw.match(/(\d+)\s*(?:people|persons|friends|travelers|members|of us)/i)
+      || raw.match(/(?:we are|group of)\s*(\d+)/i);
+    if (peopleCountMatch) {
+      extracted.group_size = parseInt(peopleCountMatch[1], 10);
+      extracted.group_type = extracted.group_size === 1 ? 'solo' : 'friends';
+    } else if (raw.includes('solo') || raw.includes('myself') || raw.includes('alone')) {
       extracted.group_type = 'solo';
       extracted.group_size = 1;
     } else if (raw.includes('couple') || raw.includes('partner') || raw.includes('wife') || raw.includes('husband')) {
@@ -70,8 +89,7 @@ export class AiIntakeService {
       extracted.group_size = sizeMatch ? parseInt(sizeMatch[1], 10) : 4;
     } else if (raw.includes('friend') || raw.includes('friends') || raw.includes('buddies') || raw.includes('group')) {
       extracted.group_type = 'friends';
-      const sizeMatch = raw.match(/(\d+)\s*(?:friends|people|of us)/i);
-      extracted.group_size = sizeMatch ? parseInt(sizeMatch[1], 10) : 3;
+      extracted.group_size = 3;
     }
 
     // 5. Interest Categories Overlap
@@ -120,6 +138,14 @@ export class AiIntakeService {
       extracted.accessibility_tags = access;
     }
 
+    // 7. Transport / Nearby Constraints
+    if (raw.includes('train') || raw.includes('flight') || raw.includes('station') || raw.includes('airport')) {
+      extracted.transport_constraint = raw.includes('train') ? 'train connection' : 'transit departure';
+    }
+    if (raw.includes('nearby') || raw.includes('close') || raw.includes('around here') || raw.includes('walkable')) {
+      extracted.nearby_required = true;
+    }
+
     // Coordinates mapping by destination hint
     let lat: number | undefined;
     let lng: number | undefined;
@@ -132,6 +158,12 @@ export class AiIntakeService {
     } else if (extracted.destination === 'Delhi') {
       lat = 28.6506;
       lng = 77.2303;
+    } else if (extracted.destination === 'Pune') {
+      lat = 18.5204;
+      lng = 73.8567;
+    } else if (extracted.destination === 'Mumbai') {
+      lat = 18.9220;
+      lng = 72.8347;
     }
 
     const parsedIntake: Partial<ConstraintIntake> = {
@@ -139,7 +171,7 @@ export class AiIntakeService {
       budget: { min: 0, max: extracted.budget_max || 1500 },
       group: {
         type: extracted.group_type || 'couple',
-        size: extracted.group_size || 2
+        size: extracted.group_size || (extracted.group_type === 'solo' ? 1 : 2)
       },
       interests: extracted.interests || ['food_culinary', 'cultural_heritage'],
       accessibility_tags: extracted.accessibility_tags || []
@@ -154,10 +186,18 @@ export class AiIntakeService {
       };
     }
 
-    const hasAnyEntity = !!(extracted.duration_minutes || extracted.budget_max || extracted.destination || extracted.interests?.length || extracted.group_type);
+    const hasAnyEntity = Boolean(
+      extracted.duration_minutes ||
+      extracted.budget_max ||
+      extracted.destination ||
+      extracted.interests?.length ||
+      extracted.group_type ||
+      extracted.group_size ||
+      extracted.accessibility_tags?.length
+    );
     const confidence = hasAnyEntity ? 0.92 : 0.35;
     const explanation = hasAnyEntity
-      ? `Parsed ${extracted.duration_minutes ? `${extracted.duration_minutes}m duration, ` : ''}${extracted.budget_max ? `₹${extracted.budget_max} budget, ` : ''}${extracted.interests?.length ? `${extracted.interests.length} categories, ` : ''}ready for review.`
+      ? `Parsed ${extracted.destination ? `in ${extracted.destination}, ` : ''}${extracted.duration_minutes ? `${extracted.duration_minutes}m duration, ` : ''}${extracted.budget_max ? `₹${extracted.budget_max} budget, ` : ''}${extracted.interests?.length ? `${extracted.interests.length} categories, ` : ''}ready for review.`
       : 'Could not extract specific constraints from free-text. Loaded standard fallback settings — please review and customize using the chips below.';
 
     return {
@@ -169,22 +209,17 @@ export class AiIntakeService {
   }
 
   /**
-   * Phase 20: Natural AI Explanation Synthesizer
-   * Rewrites deterministic reason tokens into fluid prose.
-   * If timeout (>1.5s) or API error occurs, returns immediate deterministic string.
+   * High performance deterministic explanation synthesizer.
    */
   public synthesizeExplanation(reasons: string[], experienceTitle: string): string {
-    if (!reasons || reasons.length === 0) {
-      return `Recommended based on your current preferences for ${experienceTitle}.`;
-    }
+    return llmService.fallbackSynthesizeExplanation(reasons, experienceTitle);
+  }
 
-    // High performance deterministic sentence synthesis
-    const clauses = reasons.map(r => r.trim()).filter(Boolean);
-    if (clauses.length === 1) {
-      return `A top match because it ${clauses[0].toLowerCase()}.`;
-    }
-
-    return `Recommended for ${experienceTitle}: it ${clauses.slice(0, 2).join(' and ')}, offering optimal value for your plan.`;
+  /**
+   * Async explanation synthesizer that delegates to Groq LLM with deterministic fallback.
+   */
+  public async synthesizeExplanationAsync(reasons: string[], experienceTitle: string): Promise<string> {
+    return llmService.explainRecommendations(experienceTitle, reasons);
   }
 }
 

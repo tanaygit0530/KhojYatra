@@ -247,7 +247,18 @@ export const ResultsList: React.FC<ResultsListProps> = ({
 
       {/* 2. Vertical list of Ranked Cards */}
       <div className="space-y-4">
-        {recommendations.map((rec, index) => {
+        {recommendations.length === 0 ? (
+          <Card variant="surface" className="p-8 text-center space-y-3 border-accent/20">
+            <Compass size={32} className="text-accent mx-auto opacity-70" />
+            <h4 className="font-display font-bold text-sm text-text-primary">
+              No matching experiences within current constraints
+            </h4>
+            <p className="text-xs text-text-secondary max-w-md mx-auto">
+              We couldn't find published offerings fitting your exact duration and budget. Try expanding your available time or adjusting your budget ceiling above.
+            </p>
+          </Card>
+        ) : (
+          recommendations.map((rec, index) => {
           const isNewlyAdded = recentlyAddedIds.has(rec.experience.id);
           const isConsensusPick = (rec as any).group_pick;
           const isLocalityOpen = activeLocalityExpId === rec.experience.id;
@@ -458,7 +469,8 @@ export const ResultsList: React.FC<ResultsListProps> = ({
               </div>
             </Card>
           );
-        })}
+        })
+      )}
       </div>
 
       {/* Phase 19: Worth the Detour Modal */}

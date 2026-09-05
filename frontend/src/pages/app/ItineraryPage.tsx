@@ -15,12 +15,13 @@ import {
   Route,
   Sparkles
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useSessionStore } from '../../store/sessionStore';
 import { apiClient } from '../../lib/apiClient';
 import { Itinerary, ItineraryFeasibility } from '@khojyatra/types';
 
 export const ItineraryPage: React.FC = () => {
+  const navigate = useNavigate();
   const [activeNav, setActiveNav] = useState('itinerary');
   const sessionId = useSessionStore((state) => state.sessionId);
 
@@ -105,7 +106,15 @@ export const ItineraryPage: React.FC = () => {
         subtitle="Traveler Mode"
         items={navItems}
         activeId={activeNav}
-        onSelect={setActiveNav}
+        onSelect={(id) => {
+          if (id === 'discover') {
+            navigate('/app');
+          } else if (id === 'home') {
+            navigate('/');
+          } else {
+            setActiveNav(id);
+          }
+        }}
         footerContent={
           <div className="space-y-1">
             <div className="text-[11px] text-text-secondary">Session: {sessionId.slice(0, 10)}...</div>

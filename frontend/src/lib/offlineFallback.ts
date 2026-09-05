@@ -4,7 +4,7 @@ export const OFFLINE_SEED_RECOMMENDATIONS: RecommendationItem[] = [
   {
     experience: {
       id: 'e1111111-1111-4111-8111-111111111111',
-      provider_id: 'p1111111-1111-4111-8111-111111111111',
+      provider_id: 'a1111111-1111-4111-8111-111111111111',
       title: 'Old Delhi Midnight Kebab & Paratha Trail',
       description: 'Walk through narrow alleyways of Chandni Chowk sampling 6 legendary family recipes made over charcoal since 1912.',
       category: 'food_culinary',
@@ -45,7 +45,7 @@ export const OFFLINE_SEED_RECOMMENDATIONS: RecommendationItem[] = [
   {
     experience: {
       id: 'e4444444-4444-4444-8444-444444444444',
-      provider_id: 'p2222222-2222-4222-8222-222222222222',
+      provider_id: 'a2222222-2222-4222-8222-222222222222',
       title: 'Jaipur Master Artisan Cobalt Blue Pottery',
       description: 'Hands-on molding and quartz glaze hand-painting in a 4th-generation Kot Jewar artisan workshop.',
       category: 'workshops_classes',

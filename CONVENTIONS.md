@@ -15,7 +15,7 @@ All environment variables must be defined in `.env.example` at the repo root and
 | `SUPABASE_SERVICE_ROLE_KEY` | **Backend ONLY** | Elevated DB admin key (**Never expose to client**) | Throws warning; operations fall back to mock service layer |
 | `PORT` | Backend | HTTP port (default `4000`) | Defaults to `4000` |
 | `JWT_ISSUER` | Backend | JWT issuer identifier (default `supabase`) | Defaults to `supabase` |
-| `ANTHROPIC_API_KEY` | Backend | Claude API key for natural language intake/explanations | Falls back to deterministic rule-based intake & explanations |
+| `GROQ_API_KEY` | Backend | Groq API key for natural language intake & explanations (Llama 3.3 70B) | Falls back to deterministic rule-based intake & explanations |
 | `WEATHER_API_KEY` | Backend | Real-time weather data API | Falls back to UI manual condition toggle ("clear" \| "rain" \| "extreme") |
 | `MAPS_API_KEY` | Frontend & Backend | Map tiles & geocoding | Falls back to Haversine distance & Leaflet/OSM |
 | `WHATSAPP_BUSINESS_TOKEN` | Backend | WhatsApp Business Cloud API webhook token | Accepts direct sample audio uploads in demo mode |
@@ -77,7 +77,7 @@ All error responses must strictly follow this exact JSON shape and use only the 
 | `NOT_FOUND` | 404 | Requested entity or route was not found |
 | `FORBIDDEN` | 403 | Insufficient permissions or role mismatch |
 | `CONFLICT` | 409 | Resource state collision (e.g. slot capacity depleted, scheduling overlap) |
-| `UPSTREAM_UNAVAILABLE` | 502 | Third-party service (Supabase, Weather, Anthropic) failed or timed out |
+| `UPSTREAM_UNAVAILABLE` | 502 | Third-party service (Supabase, Weather, Groq) failed or timed out |
 | `INTERNAL` | 500 | Unhandled internal server error |
 
 ### 2.5 Validation with Zod

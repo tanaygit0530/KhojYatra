@@ -24,6 +24,7 @@ export const App: React.FC = () => {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<AuthPage />} />
+        <Route path="/itinerary" element={<ItineraryPage />} />
         <Route path="/app/itinerary" element={<ItineraryPage />} />
         <Route path="/app/*" element={<TravelerApp />} />
         <Route path="/provider/onboarding" element={<ProviderOnboardingPage />} />

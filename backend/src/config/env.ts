@@ -22,7 +22,8 @@ const EnvSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
 
   // Optional Integrations (fallbacks exist for all)
-  ANTHROPIC_API_KEY: z.string().optional(),
+  GROQ_API_KEY: z.string().optional(),
+  GROQ_MODEL: z.string().optional(),
   WEATHER_API_KEY: z.string().optional(),
   MAPS_API_KEY: z.string().optional(),
   WHATSAPP_BUSINESS_TOKEN: z.string().optional(),

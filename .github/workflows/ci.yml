@@ -1,0 +1,43 @@
+name: KhojYatra CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    name: Build, Audit & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: 🔒 Static Security Audit (Zero Client Secrets)
+        run: npm run check:security
+
+      - name: 🎨 Design Tokens & Warm Color Lint (Zero Green)
+        run: npm run lint:colors --workspace=frontend
+
+      - name: 📦 Compile All Workspaces
+        run: npm run build
+
+      - name: 🧪 Run All 18 Test Suites (66 Tests)
+        run: npm test
+
+      - name: 🚀 Run Headless End-to-End Demo Script
+        run: npm run demo:script
+
+      - name: 🚢 Pre-Deployment Production Verification Audit
+        run: npm run verify:deploy
