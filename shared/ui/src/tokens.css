@@ -1,0 +1,37 @@
+:root {
+  /* Base surfaces — warm cream, not stark white */
+  --color-bg: #F6F1E7;
+  --color-surface: #FBF8F2;
+  --color-surface-alt: #FFFFFF;
+
+  /* Text */
+  --color-text-primary: #14161A;
+  --color-text-secondary: #5B5A55;
+  --color-text-inverse: #FBF8F2;
+
+  /* Brand accent — the sky-blue from the landing page's circular imagery, replaces any green everywhere */
+  --color-accent: #2F5DE3;
+  --color-accent-dark: #1E3A8A;
+  --color-accent-soft: #DCE6FB;
+
+  /* Warm highlight — for badges/scores (Locality Score, Trust Score) */
+  --color-highlight: #F2A93B;
+  --color-highlight-soft: #FBEBD0;
+
+  /* CTA — bold black pill, matches the landing page's primary "Book/Get Started" button */
+  --color-cta-bg: #14161A;
+  --color-cta-text: #FBF8F2;
+
+  /* Semantic (status only — never used as a brand color) */
+  --color-success: #2E9E6D;
+  --color-warning: #D98C2B;
+  --color-danger: #D24B3C;
+
+  --radius-pill: 999px;
+  --radius-card: 20px;
+  --shadow-card: 0 4px 24px rgba(20, 22, 26, 0.06);
+
+  /* Typography */
+  --font-display: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
